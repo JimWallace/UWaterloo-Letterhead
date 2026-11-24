@@ -1,0 +1,64 @@
+%========================
+% format.tex — auto overlays + right-aligned date, no sender
+%========================
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage{eso-pic}
+\usepackage{etoolbox}
+
+% Letterhead PDFs (override in main.tex if paths differ)
+\providecommand{\FirstPagePDF}{extras/SPHS_letterhead_page_1.pdf}
+\providecommand{\LastPagePDF}{extras/SPHS_letterhead_page_2.pdf}
+
+% Layer: FG (on top) or BG (behind text)
+\providecommand{\LetterheadLayer}{FG} % switch to BG when satisfied
+
+% Right-aligned date text (override if needed)
+\providecommand{\LetterDate}{\today}
+\newcommand{\PrintRightDate}{%
+  \par\noindent\hfill\LetterDate\par\vspace{1em}%
+}
+
+% Helpers
+\newcommand{\PlaceFullPage}[1]{%
+  \AtPageLowerLeft{\includegraphics[width=\paperwidth,height=\paperheight]{#1}}%
+}
+\newcommand{\AddOneShot}[1]{%
+  \leavevmode
+  \edef\__layer{\LetterheadLayer}%
+  \ifx\__layer\relax\def\__layer{BG}\fi
+  \ifx\__layer\empty\def\__layer{BG}\fi
+  \ifx\__layer FG
+    \AddToShipoutPictureFG*{#1}%
+  \else
+    \AddToShipoutPictureBG*{#1}%
+  \fi
+}
+
+% --- First page overlay + right-aligned date, triggered by \opening ---
+\pretocmd{\opening}{%
+  \IfFileExists{\FirstPagePDF}{\AddOneShot{\PlaceFullPage{\FirstPagePDF}}}{}%
+  \PrintRightDate
+}{}{}
+
+% --- Last page overlay and left-aligned closing/signature (signature optional) ---
+\providecommand{\stopbreaks}{}%
+\providecommand{\restartbreaks}{}%
+\providecommand{\fromsig}{}% will be empty unless \signature{...} is set
+\newlength{\sigskip}\setlength{\sigskip}{2\baselineskip}
+
+\makeatletter
+\long\def\closing#1{%
+  \IfFileExists{\LastPagePDF}{\AddOneShot{\PlaceFullPage{\LastPagePDF}}}{}%
+  \par\nobreak\vspace{\parskip}%
+  \stopbreaks
+  \noindent #1\par\nobreak
+  \vspace{\sigskip}%
+  \noindent \fromsig\par
+  \restartbreaks
+}
+\makeatother
+
+% --- Remove sender details by default ---
+% No \address{} and no \signature{} here; add them in main.tex only if you want them.
